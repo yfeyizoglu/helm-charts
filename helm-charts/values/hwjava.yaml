@@ -1,0 +1,70 @@
+namespace: alperen
+saname: hwjava-sa
+deploy:
+  name: hwjava
+  replicas: 1
+  port: 80
+  targetport: 80
+  image: europe-north1-docker.pkg.dev/alperenokur-sandbox-415013/bitbucket-repo/helloworld-java
+  tag: latest
+  registry: 
+  resources:
+    enabled: true
+    requestCpu: 1
+    requestMemory: 500Mi
+    limitCpu: 5
+    limitMemory: 10000Mi
+  nodeSelector:
+    enabled: true
+    key: apptype
+    value: ml
+  toleration:
+    enabled: true
+    key: apptype
+    value: ml
+    operator: Equal
+  notspot: 
+    enabled: false
+svc:
+  enabled: false
+  name: hwjava
+  port2:
+    enabled: false
+    targetport: 80
+  port3:
+    enabled: false
+    targetport: 80
+hpa:
+  autoscaling:
+    enabled: false
+    minReplicas: 3
+    maxReplicas: 7
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 70
+probe:
+  enabled: false
+  failureThreshold: 1
+  periodSeconds: 10
+  timeoutSeconds: 10
+  initialDelaySeconds: 90
+  pathreadiness: /
+  pathliveness: /
+  port: 80
+configmap:
+  enabled: true
+  name: hwjavacm
+  secretname: hwjavacm-secret
+  smname: hwjavacm-1
+  pathname: hwjava.txt
+appconfigs:
+  configmap:
+    enabled: true
+volumeMounts:
+  enabled: true
+  pathOnContainer: "/var/secrets"
+gateway:
+  enabled: false
+  name: external-https
+  host: "yfeyizoglu.com"
+  routename: store
+  ip: 34.88.90.98

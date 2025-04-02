@@ -1,0 +1,60 @@
+# Steps to build, push to Artifact Registry, and deploy to GKE
+steps:
+  # Step 1: Authenticate Docker with Artifact Registry
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud auth configure-docker europe-north1-docker.pkg.dev
+
+  # Step 2: Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'europe-north1-docker.pkg.dev/alperenokur-sandbox-415013/bitbucket-repo/helloworld-kubernetes'
+      - '.'
+
+  # Step 3: Push the image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'europe-north1-docker.pkg.dev/alperenokur-sandbox-415013/bitbucket-repo/helloworld-kubernetes'
+      
+  # Step 4: Helm installation
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud components update
+        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        chmod 700 get_helm.sh
+        ./get_helm.sh
+        helm package ./helm-charts/
+        helm push helm-charts-0.1.0.tgz oci://europe-north1-docker.pkg.dev/alperenokur-sandbox-415013/bitbucket-repo/helloworld-kubernetes
+        PROJECT=$$(gcloud config get-value core/project)
+        gke-gcloud-auth-plugin --version
+        export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+        gcloud container clusters get-credentials gke-cluster --region europe-north1 --project alperenokur-sandbox-415013
+        gcloud secrets versions access latest --secret="hwpythoncm" > pythonconfigmap.yaml
+        gcloud secrets versions access latest --secret="hwnodejscm" > nodejsconfigmap.yaml
+        gcloud secrets versions access latest --secret="hwjavacm" > javaconfigmap.yaml
+        helm upgrade --install -f ./helm-charts/values/hwpython.yaml --set-file configValues=pythonconfigmap.yaml hwpython ./helm-charts
+        helm upgrade --install -f ./helm-charts/values/hwnodejs.yaml --set-file configValues=nodejsconfigmap.yaml hwnodejs ./helm-charts
+        helm upgrade --install -f ./helm-charts/values/hwjava.yaml --set-file configValues=javaconfigmap.yaml hwjava ./helm-charts
+#        gcloud secrets versions access latest --secret="hwpythoncm-1" > pythonconfigmap1.yaml
+#        gcloud secrets versions access latest --secret="hwnodejscm-1" > nodejsconfigmap1.yaml
+#        gcloud secrets versions access latest --secret="hwjavacm-1" > javaconfigmap1.yaml
+#        helm upgrade --install -f ./helm-charts/values/hwpython.yaml --set-file configValues=pythonconfigmap1.yaml hwpython ./helm-charts
+#        helm upgrade --install -f ./helm-charts/values/hwnodejs.yaml --set-file configValues=nodejsconfigmap1.yaml hwnodejs ./helm-charts
+#        helm upgrade --install -f ./helm-charts/values/hwjava.yaml --set-file configValues=javaconfigmap1.yaml hwjava ./helm-charts 
+        
+        
+# Specify the images built by this configuration
+images:
+  - 'europe-north1-docker.pkg.dev/alperenokur-sandbox-415013/bitbucket-repo/helloworld-kubernetes'
+  
+options:
+  logging: CLOUD_LOGGING_ONLY

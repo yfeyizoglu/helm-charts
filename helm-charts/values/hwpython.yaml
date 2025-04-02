@@ -1,0 +1,70 @@
+namespace: alperen
+deploy:
+  name: hwpython
+  replicas: 1
+  port: 80
+  targetport: 80
+  image: europe-north1-docker.pkg.dev/alperenokur-sandbox-415013/bitbucket-repo/helloworld-python
+  tag: latest
+  registry: 
+  resources:
+    enabled: true
+    requestCpu: 100m
+    requestMemory: 200Mi
+    limitCpu: 700m
+    limitMemory: 1000Mi
+  nodeSelector:
+    enabled: false
+    key: apptype
+    value: ml
+  toleration:
+    enabled: false
+    key: apptype
+    value: ml
+    operator: Equal
+  notspot: 
+    enabled: true
+svc:
+  enabled: true
+  name: hwpython
+  port2:
+    enabled: false
+    targetport: 80
+  port3:
+    enabled: false
+    targetport: 80
+hpa:
+  autoscaling:
+    enabled: false
+    minReplicas: 3
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 70
+gateway:
+  enabled: true
+  name: external-https
+  host: "yfeyizoglu.com"
+  routename: store
+  ip: yusuf
+  certs: certificate-test-cift-1
+probe:
+  enabled: false
+  failureThreshold: 1
+  periodSeconds: 10
+  timeoutSeconds: 10
+  initialDelaySeconds: 90
+  pathreadiness: /
+  pathliveness: /
+  port: 80
+configmap:
+  enabled: true
+  name: hwpythoncm
+  secretname: hwpythoncm-secret
+  smname: hwpythoncm-1
+  pathname: hwpythoncm.txt
+appconfigs:
+  configmap:
+    enabled: true
+volumeMounts:
+  enabled: true
+  pathOnContainer: "/var/secrets" 
