@@ -1,0 +1,19 @@
+{{- if .Values.gateway.enabled }}
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: {{ .Values.gateway.routename }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.deploy.name }}
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: {{ .Values.gateway.name }}
+  hostnames:
+  - {{ .Values.gateway.host }}
+  rules:
+  - backendRefs:
+    - name: {{ .Values.deploy.name }}
+      port: {{ .Values.deploy.port }}
+{{- end }}

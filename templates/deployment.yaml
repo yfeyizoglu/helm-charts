@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.deploy.name }}-deployment
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.deploy.name }}
+spec:
+  replicas: {{ .Values.deploy.replicas }}
+{{- if .Values.deploy.strategy }}
+  strategy:
+{{ toYaml .Values.deploy.strategy | indent 4 }}
+{{- end }}
+  selector:
+    matchLabels:
+      app: {{ .Values.deploy.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.deploy.name }}
+    spec:
+{{- if .Values.deploy.nodeSelector.enabled }}    
+      nodeSelector:
+        {{ .Values.deploy.nodeSelector.key }}: {{ .Values.deploy.nodeSelector.value }}
+{{- end }}
+{{- if .Values.deploy.toleration.enabled }}    
+      tolerations:
+      - effect: {{ .Values.deploy.toleration.effect }}
+        key: {{ .Values.deploy.toleration.key }}
+        operator: {{ .Values.deploy.toleration.operator }}
+        value: {{ .Values.deploy.toleration.value }}
+{{- end }}
+{{- if .Values.deploy.notspot.enabled }}
+      affinity:
+        nodeAffinity:
+         requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: apptype
+              operator: NotIn
+              values:
+              - ml
+{{- end }}
+      serviceAccountName: gke-sa
+      containers:
+      - name: {{ .Values.deploy.name }}
+        image: {{ .Values.deploy.registry }}{{ .Values.deploy.image }}:{{ .Values.deploy.tag }}
+        imagePullPolicy: Always
+{{- if .Values.deploy.resources.enabled }}
+        resources:
+          requests:
+            cpu: {{ .Values.deploy.resources.requestCpu }}
+            memory: {{ .Values.deploy.resources.requestMemory }}
+          limits:
+            cpu: {{ .Values.deploy.resources.limitCpu }}
+            memory: {{ .Values.deploy.resources.limitMemory }}
+{{- end }}
+{{- if .Values.probe.enabled }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.probe.pathreadiness }}
+            port: {{ .Values.probe.port }}
+          initialDelaySeconds: {{ .Values.probe.initialDelaySeconds }}
+          timeoutSeconds: {{ .Values.probe.timeoutSeconds }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.probe.pathliveness }}
+            port: {{ .Values.probe.port }}
+          failureThreshold: {{ .Values.probe.failureThreshold }}
+          periodSeconds: {{ .Values.probe.periodSeconds }}
+          initialDelaySeconds: {{ .Values.probe.initialDelaySeconds }}
+          timeoutSeconds: {{ .Values.probe.timeoutSeconds }}
+{{- end }}
+        ports:
+        - containerPort: {{ .Values.deploy.port }}
+#      nodeSelector:
+#        iam.gke.io/gke-metadata-server-enabled: "true"
+{{- if .Values.volumeMounts.enabled }}
+        volumeMounts:
+        - mountPath: "/var/secrets"
+          name: mountedvolume
+      restartPolicy: Always
+      volumes:
+      - name: mountedvolume
+        csi:
+          driver: secrets-store-gke.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "{{ .Values.configmap.secretname }}"
+{{- end }}

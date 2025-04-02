@@ -1,0 +1,38 @@
+{{- if .Values.gateway.enabled }}
+kind: Gateway
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: {{ .Values.gateway.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.deploy.name }}
+spec:
+  gatewayClassName: gke-l7-global-external-managed
+  addresses:
+    - type: NamedAddress
+      value: {{ .Values.gateway.ip }}
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+    hostname: {{ .Values.gateway.host }}
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: https
+    protocol: HTTPS
+    port: 443
+    hostname: {{ .Values.gateway.host }}
+    allowedRoutes:
+      namespaces:
+        from: All
+    tls:
+      mode: Terminate
+      options:
+        networking.gke.io/pre-shared-certs: {{ .Values.gateway.certs }}
+        # networking.gke.io/ssl-policy: tls-policy
+      # certificateRefs:
+      # - name: {{ .Values.gateway.secret }}
+      #   kind: Secret
+      #   group: "" 
+{{- end }}
