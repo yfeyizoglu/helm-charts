@@ -2,7 +2,7 @@ namespace: alperen
 saname: hwjava-sa
 deploy:
   name: hwjava
-  replicas: 1
+  replicas: 3
   port: 80
   targetport: 80
   image: europe-north1-docker.pkg.dev/alperenokur-sandbox-415013/bitbucket-repo/helloworld-java
